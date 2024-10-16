@@ -6,27 +6,29 @@ const uri = 'mongodb+srv://vthien562004:vanthien562004@cluster0.cepmq.mongodb.ne
 const client = new MongoClient(uri);
 let db, messagesCollection;
 
-// Kết nối tới database 'chatApp' và collection 'messages'
+// Kết nối tới database 'websocket' và collection 'messages'
 async function connectDB() {
     await client.connect();
     db = client.db('websocket');
     messagesCollection = db.collection('messages');
-    console.log('ket noi mongodb thanh cong');
+    console.log('Kết nối MongoDB thành công');
 }
 connectDB();
 
-const wss = new WebSocket.Server({ port: 8080 });
+const PORT = process.env.PORT || 8080; // Sử dụng cổng mà Render cung cấp
+
+const wss = new WebSocket.Server({ port: PORT });
 
 // Lưu trữ tên của các client đã kết nối
 const clients = new Map();
 
 wss.on('connection', async (ws) => {
-    console.log('ket noi client thanh cong');
+    console.log('Kết nối client thành công');
     
     ws.on('message', async (data) => {
         const message = JSON.parse(data);
 
-        // #1: Xử lý khi nhận tên người dùng từ client
+        // Xử lý khi nhận tên người dùng từ client
         if (message.type === 'setName') {
             const nameExists = Array.from(clients.values()).includes(message.name);
             if (nameExists) {
@@ -63,7 +65,7 @@ wss.on('connection', async (ws) => {
             }
         }
 
-        // #3: Xử lý khi người dùng gửi tin nhắn
+        // Xử lý khi người dùng gửi tin nhắn
         if (message.type === 'chat') {
             const senderName = clients.get(ws);
             const chatMessage = message.text;
@@ -90,7 +92,7 @@ wss.on('connection', async (ws) => {
         const name = clients.get(ws);
 
         if (name) {
-            // #5. Gửi thông báo cho các client khác về việc người dùng rời phòng
+            // Gửi thông báo cho các client khác về việc người dùng rời phòng
             wss.clients.forEach((client) => {
                 if (client.readyState === WebSocket.OPEN) {
                     client.send(JSON.stringify({ type: 'serverMessage', message: `${name} has left the chat.` }));
@@ -102,4 +104,4 @@ wss.on('connection', async (ws) => {
     });
 });
 
-console.log('WebSocket server is running on ws://localhost:8080');
+console.log(`WebSocket server is running on ws://localhost:${PORT}`);
